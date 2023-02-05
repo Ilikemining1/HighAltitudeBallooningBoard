@@ -236,7 +236,9 @@
   },
   "libraries": {
     "pinned_footprint_libs": [],
-    "pinned_symbol_libs": []
+    "pinned_symbol_libs": [
+      "HABParts"
+    ]
   },
   "meta": {
     "filename": "HABBoard.kicad_pro",
