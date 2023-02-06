@@ -405,7 +405,7 @@
     (property "Value" "MP5016GQH-Z" (id 1) (at -15.24 -14.16 0)
       (effects (font (size 1.27 1.27)) (justify left bottom))
     )
-    (property "Footprint" "HABParts:IC_MP5016GQH-Z" (id 2) (at 0 0 0)
+    (property "Footprint" "HABParts:MP5016GQH-Z" (id 2) (at 0 0 0)
       (effects (font (size 1.27 1.27)) (justify bottom) hide)
     )
     (property "Datasheet" "https://www.mouser.com/datasheet/2/277/MP5016HGQH_Z-2945943.pdf" (id 3) (at 0 0 0)
