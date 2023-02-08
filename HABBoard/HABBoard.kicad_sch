@@ -10202,7 +10202,7 @@
     (uuid 5d049acd-4e60-480d-9511-dd18a2d5ceee)
     (property "Reference" "U12" (id 0) (at 407.797 35.052 0))
     (property "Value" "MP5016GQH-Z" (id 1) (at 407.797 37.592 0))
-    (property "Footprint" "HABParts:IC_MP5016GQH-Z" (id 2) (at 407.797 53.594 0)
+    (property "Footprint" "HABParts:MP5016GQH-Z" (id 2) (at 407.797 53.594 0)
       (effects (font (size 1.27 1.27)) (justify bottom) hide)
     )
     (property "Datasheet" "https://www.mouser.com/datasheet/2/277/MP5016HGQH_Z-2945943.pdf" (id 3) (at 407.797 53.594 0)
@@ -14921,7 +14921,7 @@
       (reference "U11") (unit 1) (value "SX1276") (footprint "Package_DFN_QFN:QFN-28-1EP_6x6mm_P0.65mm_EP4.8x4.8mm")
     )
     (path "/5d049acd-4e60-480d-9511-dd18a2d5ceee"
-      (reference "U12") (unit 1) (value "MP5016GQH-Z") (footprint "HABParts:IC_MP5016GQH-Z")
+      (reference "U12") (unit 1) (value "MP5016GQH-Z") (footprint "HABParts:MP5016GQH-Z")
     )
     (path "/78200126-0dac-4eb0-861b-cf1ffb0904f6"
       (reference "U13") (unit 1) (value "PE42421") (footprint "Package_TO_SOT_SMD:SOT-363_SC-70-6")
