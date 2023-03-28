@@ -13,6 +13,8 @@
 INA219 sysBus;
 Adafruit_BME680 bme;
 SFE_UBLOX_GNSS gnss;
+ICM20948_WE imu = ICM20948_WE(0x68);
+
 //SX1276 vhf = new Module(8, 14, 6, 15);
 //SX1276 uhf = new Module(9, 20, 7, 21);
 
@@ -40,6 +42,11 @@ void setup() {
     Serial.println("INA219 initialization failed!");
     while (1);
   }
+
+if (!imu.init()) { // ICM20948 Initialization
+    Serial.println("ICM20948 initialization failed!");
+    while (1);
+  }
   
   sysBus.configure(INA219::RANGE_16V, INA219::GAIN_1_40MV, INA219::ADC_64SAMP, INA219::ADC_64SAMP, INA219::CONT_SH_BUS); // Configure INA219 range settings
   sysBus.calibrate(0.027, 0.04, 6, 2); // 27mOhm shunt, 40mV max shunt voltage, 6V max bus voltage, 2A max bus current
@@ -53,8 +60,18 @@ void setup() {
   bme.setTemperatureOversampling(BME680_OS_8X);
   bme.setHumidityOversampling(BME680_OS_2X);
   bme.setPressureOversampling(BME680_OS_4X);
-  bme.setIIRFilterSize(BME680_FILTER_SIZE_3);
-  bme.setGasHeater(320, 150); // 320*C for 150 ms
+
+  Serial.println("IMU Auto-Level, do not disturb!");
+  delay(1000);
+  imu.autoOffsets();
+  Serial.println("Done!");
+  imu.setAccRange(ICM20948_ACC_RANGE_16G);
+  imu.setAccDLPF(ICM20948_DLPF_6);
+  imu.setAccSampleRateDivider(10);
+  imu.initMagnetometer();
+  imu.setMagOpMode(AK09916_CONT_MODE_20HZ);
+  imu.setGyrRange(ICM20948_GYRO_RANGE_250);
+  imu.setGyrDLPF(ICM20948_DLPF_6);
 
   pinMode(28, OUTPUT);
 
@@ -67,6 +84,11 @@ void loop() {
     return;
   }
 
+  imu.readSensor();
+  xyzFloat gVal = imu.getGValues();
+  xyzFloat magVal = imu.getMagValues();
+  xyzFloat gyroVal = imu.getGyrValues();
+
   Serial.printf("Current Temperature: %lf degrees C\n", bme.temperature); // Print BME Data
   Serial.printf("Current Pressure: %lf hPa\n", bme.pressure / 100.0);
   Serial.printf("Current Humidity: %lf %\n", bme.humidity);
@@ -78,6 +100,10 @@ void loop() {
   Serial.printf("Current Latitude: %lf degrees\n", (double) gnss.getLatitude() / 10000000.0);
   Serial.printf("Current Longitude: %lf degrees\n", (double) gnss.getLongitude() / 10000000.0);
   Serial.printf("Current GNSS Altitude: %lf m\n", (double) gnss.getAltitude() / 1000.0);
+
+  Serial.printf("Current Acceleration x:%lf, y:%lf, z:%lf g\n", gVal.x, gVal.y, gVal.z);
+  Serial.printf("Current Mag Values x:%lf, y:%lf, z:%lf\n", magVal.x, magVal.y, magVal.z);
+  Serial.printf("Current Gyro Values x:%lf, y:%lf, z:%lf\n", gyroVal.x, gyroVal.y, gyroVal.z);
 
   Serial.printf("\n\n\n\n\n");
 
