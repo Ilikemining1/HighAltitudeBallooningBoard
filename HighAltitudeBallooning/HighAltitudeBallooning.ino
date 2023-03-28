@@ -31,7 +31,7 @@ void setup() {
 
   SD.begin(13, SPI1);
 
-  if (!gnss.begin() { // GNSS Initialization
+  if (!gnss.begin()) { // GNSS Initialization
     Serial.println("GNSS initialization failed!");
     while (1);
   }
@@ -44,7 +44,7 @@ void setup() {
   sysBus.configure(INA219::RANGE_16V, INA219::GAIN_1_40MV, INA219::ADC_64SAMP, INA219::ADC_64SAMP, INA219::CONT_SH_BUS); // Configure INA219 range settings
   sysBus.calibrate(0.027, 0.04, 6, 2); // 27mOhm shunt, 40mV max shunt voltage, 6V max bus voltage, 2A max bus current
 
-  if (!bme.begin() { // BME688 Initialization
+  if (!bme.begin()) { // BME688 Initialization
     Serial.println("BME680 initialization failed!");
     while (1);
   }
@@ -56,6 +56,8 @@ void setup() {
   bme.setIIRFilterSize(BME680_FILTER_SIZE_3);
   bme.setGasHeater(320, 150); // 320*C for 150 ms
 
+  pinMode(28, OUTPUT);
+
 }
 
 void loop() {
@@ -66,12 +68,22 @@ void loop() {
   }
 
   Serial.printf("Current Temperature: %lf degrees C\n", bme.temperature); // Print BME Data
-  Serial.printf("Current Pressure: %lf hPa\n", bme.pressure / 100);
+  Serial.printf("Current Pressure: %lf hPa\n", bme.pressure / 100.0);
   Serial.printf("Current Humidity: %lf %\n", bme.humidity);
 
   Serial.printf("Current Bus Voltage: %lf V\n", sysBus.busVoltage());
-  Serial.printf("Current Bus Current: %lf mA\n", sysBus.shuntCurrent());
+  Serial.printf("Current Bus Current: %lf mA\n", sysBus.shuntCurrent() * 1000.0);
 
-  
+  Serial.printf("Current GNSS Fix Type: %d Current SIV: %d\n", gnss.getFixType(), gnss.getSIV());
+  Serial.printf("Current Latitude: %lf degrees\n", (double) gnss.getLatitude() / 10000000.0);
+  Serial.printf("Current Longitude: %lf degrees\n", (double) gnss.getLongitude() / 10000000.0);
+  Serial.printf("Current GNSS Altitude: %lf m\n", (double) gnss.getAltitude() / 1000.0);
+
+  Serial.printf("\n\n\n\n\n");
+
+  digitalWrite(28, HIGH);
+  delay(500);
+  digitalWrite(28, LOW);
+  delay(500);
 
 }
