@@ -29,7 +29,7 @@ void setup() {
   SPI1.setTX(11);
 
   Wire.begin(); // Start I2C bus at 400kHz
-  Wire.setClock(400000);
+  Wire.setClock(100000);
 
   SD.begin(13, SPI1);
 
@@ -74,10 +74,25 @@ if (!imu.init()) { // ICM20948 Initialization
   imu.setGyrDLPF(ICM20948_DLPF_6);
 
   pinMode(28, OUTPUT);
+  pinMode(0, OUTPUT);
+  pinMode(1, OUTPUT);
+
+  File data = SD.open("data2.csv", "a+");
+
+  if (!data) { // Check if file was opened
+    Serial.println("Unable to open data.csv for append!");
+    while (1);
+  }
+
+  data.write("Date,Time,Temperature,Pressure,Humidity,Latitude,Longitude,GNSS Altitude,Bus Voltage,Bus Current\n");
+
+  data.close();
 
 }
 
 void loop() {
+
+  char line[200];
 
   if (!bme.performReading()) {
     Serial.println("Failed to get current data from BME688!");
@@ -88,7 +103,7 @@ void loop() {
   xyzFloat gVal = imu.getGValues();
   xyzFloat magVal = imu.getMagValues();
   xyzFloat gyroVal = imu.getGyrValues();
-
+/*
   Serial.printf("Current Temperature: %lf degrees C\n", bme.temperature); // Print BME Data
   Serial.printf("Current Pressure: %lf hPa\n", bme.pressure / 100.0);
   Serial.printf("Current Humidity: %lf %\n", bme.humidity);
@@ -106,10 +121,35 @@ void loop() {
   Serial.printf("Current Gyro Values x:%lf, y:%lf, z:%lf\n", gyroVal.x, gyroVal.y, gyroVal.z);
 
   Serial.printf("\n\n\n\n\n");
+*/
+  snprintf(line, 200, "%u/%u/%u,%u:%u:%u,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf \n", gnss.getYear(), gnss.getMonth(), gnss.getDay(), gnss.getHour(), gnss.getMinute(), gnss.getSecond(), bme.temperature, bme.pressure / 100.0, bme.humidity, gnss.getLatitude() / 10000000.0, gnss.getLongitude() / 10000000.0, gnss.getAltitude() / 1000.0, sysBus.busVoltage(), sysBus.shuntCurrent() * 1000.0);
+
+  File data = SD.open("data2.csv", "a+");
+
+  if (!data) { // Check if file was opened
+    Serial.println("Unable to open data2.csv for append!");
+    while (1);
+  }
+  data.print(line);
+
+  data.close();
+
+  if (gnss.getSIV() == 0) {
+    digitalWrite(1, HIGH);
+    digitalWrite(0, LOW);
+  } else if (gnss.getSIV() == 2) {
+    digitalWrite(0, HIGH);
+    digitalWrite(1, HIGH);
+  } else if (gnss.getSIV() == 3) {
+    digitalWrite(0, HIGH);
+    digitalWrite(1, LOW);
+  }
+  
+  // Serial.write(line);
 
   digitalWrite(28, HIGH);
-  delay(500);
+  delay(250);
   digitalWrite(28, LOW);
-  delay(500);
+  delay(250);
 
 }
