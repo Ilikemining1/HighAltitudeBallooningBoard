@@ -30,38 +30,39 @@ void setup() {
   SPI1.setCS(13);
   SPI1.setSCK(10);
   SPI1.setTX(11);
+  
+  Serial1.setRX(1);
+  Serial1.setTX(0);
+  Serial1.begin(115200);
 
   Wire.begin();  // Start I2C bus at 100kHz
   Wire.setClock(100000);
 
   SD.begin(13, SPI1);
 
-  if (!gnss.begin()) {  // GNSS Initialization
-    Serial.println("GNSS initialization failed!");
-    while (1)
-      ;
+  if (!gnss.begin(Serial1)) {  // GNSS Initialization
+    Serial1.begin(38400);
+    gnss.begin(Serial1);
+    gnss.setSerialRate(115200);
+    watchdog_reboot(0, 0, 0);  // Reset to apply baud rate.
   }
-  gnss.setI2COutput(COM_TYPE_UBX);
-  gnss.setNavigationFrequency(5);
-  gnss.setAutoPVT(true);
+  gnss.setUART1Output(COM_TYPE_UBX);
 
   if (sysBus.begin()) {  // INA219 Initialization
     Serial.println("INA219 initialization failed!");
-    while (1)
-      ;
+    while (1);
   }
 
   if (!imu.init()) {  // ICM20948 Initialization
     Serial.println("ICM20948 initialization failed!");
-    while (1)
-      ;
+    while (1);
   }
 
   sysBus.configure(INA219::RANGE_16V, INA219::GAIN_1_40MV, INA219::ADC_64SAMP, INA219::ADC_64SAMP, INA219::CONT_SH_BUS);  // Configure INA219 range settings
   sysBus.calibrate(0.027, 0.04, 6, 2);                                                                                    // 27mOhm shunt, 40mV max shunt voltage, 6V max bus voltage, 2A max bus current
 
   if (!bme.begin()) {  // BME688 Initialization
-    Serial.println("BME680 initialization failed!");
+    Serial.println("BME688 initialization failed!");
     while (1)
       ;
   }
@@ -84,9 +85,9 @@ void setup() {
   imu.setGyrDLPF(ICM20948_DLPF_6);
 
   pinMode(28, OUTPUT);
-  pinMode(0, OUTPUT);
-  pinMode(1, OUTPUT);
+
   pinMode(2, OUTPUT);
+  pinMode(3, OUTPUT);
 
   while (1) {
     snprintf(fileName, 25, "data%u.csv", fileNumber);
@@ -95,60 +96,38 @@ void setup() {
     fileNumber++; 
   }
 
+  Serial.printf("Using file: %s\n", fileName);
   File data = SD.open(fileName, "a+");
 
   if (!data) {  // Check if file was opened
     Serial.printf("Unable to open %s for append!", fileName);
-    while (1)
-      ;
+    while (1);
   }
 
-  data.write("Date,Time,Temperature,Pressure,Humidity,Latitude,Longitude,GNSS Altitude,Bus Voltage,Bus Current\n");
+  data.write("Date,Time,Temperature,Pressure,Humidity,Latitude,Longitude,GNSS Altitude,GNSS Fix Type,GNSS SIV,Accell X,Accell Y,Accell Z,Mag X,Mag Y,Mag Z,Gyro X,Gyro Y,Gyro Z,Bus Voltage,Bus Current\n");
 
   data.close();
 }
 
 void loop() {
 
-  char line[200];
-  static unsigned int gpsDateTime[6];
-  static unsigned int gpsNav[3];
+  char line[300];
 
   if (!bme.performReading()) {
     Serial.println("Failed to get current data from BME688!");
-    watchdog_reboot(0,0,0);
     return;
   }
 
-  if (gnss.getPVT() && (gnss.getInvalidLlh() == false)) {
-
-    gpsDateTime[0] = gnss.getYear();
-    gpsDateTime[1] = gnss.getMonth();
-    gpsDateTime[2] = gnss.getDay();
-    gpsDateTime[3] = gnss.getHour();
-    gpsDateTime[4] = gnss.getMinute();
-    gpsDateTime[5] = gnss.getSecond();
-
-    gpsNav[0] = gnss.getLatitude();
-    gpsNav[1] = gnss.getLongitude();
-    gpsNav[2] = gnss.getAltitude();
-
-    if (gnss.getFixType() == 0) {
-      digitalWrite(1, HIGH);
-      digitalWrite(0, LOW);
-    } else if (gnss.getFixType() == 2) {
-      digitalWrite(0, HIGH);
-      digitalWrite(1, HIGH);
-    } else if (gnss.getFixType() == 3) {
-      digitalWrite(0, HIGH);
-      digitalWrite(1, LOW);
-    }
-    digitalWrite(2, !digitalRead(2));
-
-  } else {
-    Serial.println("Unable to get current NAV data!");
+  if (gnss.getFixType() == 0) {
+    digitalWrite(3, HIGH);
+    digitalWrite(2, LOW);
+  } else if (gnss.getFixType() == 2) {
+    digitalWrite(2, HIGH);
+    digitalWrite(3, HIGH);
+  } else if (gnss.getFixType() == 3) {
+    digitalWrite(2, HIGH);
+    digitalWrite(3, LOW);
   }
-
   
   imu.readSensor();
   xyzFloat gVal = imu.getGValues();
@@ -174,10 +153,9 @@ void loop() {
 
   Serial.printf("\n\n\n\n\n"); */
 
-  snprintf(line, 200, "%u/%u/%u,%u:%u:%u,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf \n", gpsDateTime[0], gpsDateTime[1], gpsDateTime[2], gpsDateTime[3], gpsDateTime[4], gpsDateTime[5], bme.temperature, bme.pressure / 100.0, bme.humidity, gpsNav[0] / 10000000.0, gpsNav[1] / 10000000.0, gpsNav[2] / 1000.0, sysBus.busVoltage(), sysBus.shuntCurrent() * 1000.0);
+  snprintf(line, 300, "%u/%u/%u,%u:%u:%u,%lf,%lf,%lf,%lf,%lf,%lf,%u,%u,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf \n", gnss.getYear(), gnss.getMonth(), gnss.getDay(), gnss.getHour(), gnss.getMinute(), gnss.getSecond(), bme.temperature, bme.pressure / 100.0, bme.humidity, gnss.getLatitude() / 10000000.0, gnss.getLongitude() / 10000000.0, gnss.getAltitude() / 1000.0, gnss.getFixType(), gnss.getSIV(), gVal.x, gVal.z, gVal.z, magVal.x, magVal.y, magVal.z, gyroVal.x, gyroVal.y, gyroVal.z, sysBus.busVoltage(), sysBus.shuntCurrent() * 1000.0);
 
   File data = SD.open(fileName, "a+");
-  Serial.println(fileName);
 
   if (!data) {  // Check if file was opened
     Serial.printf("Unable to open %s for append!", fileName);
@@ -189,5 +167,5 @@ void loop() {
   data.close();
 
   digitalWrite(28, !digitalRead(28));
-  delay(200);
+  delay(50);
 }
