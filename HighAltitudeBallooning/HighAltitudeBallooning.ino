@@ -59,8 +59,7 @@ void setup() {
 
   if (!bme.begin()) {  // BME688 Initialization
     Serial.println("BME688 initialization failed!");
-    while (1)
-      ;
+    while (1);
   }
 
   // Set up oversampling and filter initialization for BME688
@@ -153,6 +152,7 @@ void loop() {
     data.close();
     digitalWrite(2, LOW);
     digitalWrite(3, LOW);
+    Serial.println("File has been closed out!");
 
     while(true) {
       digitalWrite(28, !digitalRead(28));
